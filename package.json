@@ -1,0 +1,24 @@
+{
+  "name": "pm2managerrest",
+  "version": "1.0.0",
+  "description": "PM2 manager rest api",
+  "main": "app.js",
+  "scripts": {
+    "start": "nodemon app.js"
+  },
+  "keywords": [
+    "pm2"
+  ],
+  "author": "Ahmadreza Amini",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.1",
+    "morgan": "^1.10.0",
+    "nodemon": "^2.0.19",
+    "pm2": "^5.2.0",
+    "promise": "^8.2.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.23.0"
+  }
+}

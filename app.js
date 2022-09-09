@@ -1,0 +1,159 @@
+const pm2 = require("pm2")
+const morgan = require("morgan")
+const Promise = require('promise');
+const express = require("express")
+const app = express()
+const port = 5000
+
+app.use(morgan(':remote-addr - :remote-user [:date[clf]] ":method :url HTTP/:http-version" :status :res[content-length]'))
+app.use(express.json())
+
+function pm2List() {
+    const pm2_list = new Promise((resolve, reject) => {
+        pm2.list((err, list) => {
+            if (err) {
+                reject(err)
+            } else {
+                resolve(list)
+            }
+        })
+    });
+
+    return pm2_list
+}
+
+function pm2Describe(processName) {
+    const pm2_desc = new Promise((resolve, reject) => {
+        pm2.describe(processName, (err, list) => {
+            if (err) {
+                reject(err)
+            } else {
+                resolve(list)
+            }
+        })
+    });
+
+    return pm2_desc
+}
+
+function pm2StartProcess(processConf) {
+    const pm2_list = new Promise((resolve, reject) => {
+        pm2.start(processConf, (err, list) => {
+            if (err) {
+                reject(err)
+            } else {
+                resolve(list)
+            }
+        })
+    });
+
+    return pm2_list
+}
+
+function pm2StopProcess(processName) {
+    const pm2_list = new Promise((resolve, reject) => {
+        pm2.stop(processName, (err, list) => {
+            if (err) {
+                reject(err)
+            } else {
+                resolve(list)
+            }
+        })
+    });
+
+    return pm2_list
+}
+
+function pm2RestartProcess(processName) {
+    const pm2_list = new Promise((resolve, reject) => {
+        pm2.restart(processName, (err, list) => {
+            if (err) {
+                reject(err)
+            } else {
+                resolve(list)
+            }
+        })
+    });
+
+    return pm2_list
+}
+
+function pm2ReloadProcess(processName) {
+    const pm2_list = new Promise((resolve, reject) => {
+        pm2.reload(processName, (err, list) => {
+            if (err) {
+                reject(err)
+            } else {
+                resolve(list)
+            }
+        })
+    });
+
+    return pm2_list
+}
+
+function pm2DeleteProcess(processName) {
+    const pm2_list = new Promise((resolve, reject) => {
+        pm2.delete(processName, (err, list) => {
+            if (err) {
+                reject(err)
+            } else {
+                resolve(list)
+            }
+        })
+    });
+
+    return pm2_list
+}
+
+
+app.get("/process/list", (req, res) => {
+    pm2List()
+        .then(list => res.status(200).json(list))
+        .catch(err => console.log(err));
+})
+
+
+app.get("/process/describe", (req, res) => {
+    pm2Describe(req.query['processName'])
+        .then(list => res.status(200).json(list))
+        .catch(err => console.log(err));
+})
+
+
+app.post("/process/start", (req, res) => {
+    pm2StartProcess(req.body)
+        .then(list => res.status(200).json(list))
+        .catch(err => console.log(err));
+})
+
+app.put("/process/:action", (req, res) => {
+    switch (req.params.action) {
+        case "restart":
+            pm2RestartProcess(req.query['processName'])
+                .then(list => res.status(200).json(list))
+                .catch(err => console.log(err));
+            break;
+        case "stop":
+            pm2StopProcess(req.query['processName'])
+                .then(list => res.status(200).json(list))
+                .catch(err => console.log(err));
+            break;
+        case "reload":
+            pm2ReloadProcess(req.query['processName'])
+                .then(list => res.status(200).json(list))
+                .catch(err => console.log(err));
+            break;
+    }
+})
+
+app.delete("/process/delete", (req, res) => {
+    pm2DeleteProcess(req.query['processName'])
+        .then(list => res.status(200).json(list))
+        .catch(err => console.log(err));
+})
+
+
+app.listen(port, function () {
+    console.log(`Listening on port ${port}`);
+})
