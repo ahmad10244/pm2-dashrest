@@ -1,3 +1,4 @@
+const QueryLinesReader = require('query-lines-reader');
 const pm2 = require("pm2")
 const morgan = require("morgan")
 const Promise = require('promise');
@@ -150,6 +151,38 @@ app.put("/process/:action", (req, res) => {
 app.delete("/process/delete", (req, res) => {
     pm2DeleteProcess(req.query['processName'])
         .then(list => res.status(200).json(list))
+        .catch(err => console.log(err));
+})
+
+
+app.get("/process/logs", (req, res) => {
+    let pName = req.query['processName']
+
+    pm2Describe(pName)
+        .then(list => {
+            let page = req.query.page
+            let pageSize = req.query.pageSize
+            let reverse = req.query.reverse
+            let output = req.query.output
+
+            const filePath = output == "err" ? list[0].pm2_env.pm_err_log_path : list[0].pm2_env.pm_out_log_path
+
+            let queryLinesReader = new QueryLinesReader(filePath, {
+                reverse: reverse,
+                needTotal: true,
+                pageSize: parseInt(pageSize)
+            });
+
+            queryLinesReader.queryLines({
+                currentPage: parseInt(page)
+            }).then(fileRes => {
+                const ret = {
+                    "totalLines": fileRes.total,
+                    "lines": fileRes.lineList
+                }
+                res.status(200).json(ret)
+            })
+        })
         .catch(err => console.log(err));
 })
 
