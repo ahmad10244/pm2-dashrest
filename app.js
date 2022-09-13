@@ -1,4 +1,5 @@
 const QueryLinesReader = require('query-lines-reader');
+const { exec } = require("child_process");
 const pm2 = require("pm2")
 const morgan = require("morgan")
 const Promise = require('promise');
@@ -108,6 +109,18 @@ function pm2DeleteProcess(processName) {
 }
 
 
+function pm2Save(){
+    exec("pm2 save --force", (error, stdout, stderr) => {
+        if (error) {
+            console.log(`error: ${error.message}`);
+        }
+        if (stderr) {
+            console.log(`stderr: ${stderr}`);
+        }
+    });
+}
+
+
 app.get("/process/list", (req, res) => {
     pm2List()
         .then(list => res.status(200).json(list))
@@ -124,7 +137,10 @@ app.get("/process/describe", (req, res) => {
 
 app.post("/process/start", (req, res) => {
     pm2StartProcess(req.body)
-        .then(list => res.status(200).json(list))
+        .then(list => {
+            pm2Save();
+            res.status(200).json(list);
+        })
         .catch(err => console.log(err));
 })
 
@@ -150,7 +166,10 @@ app.put("/process/:action", (req, res) => {
 
 app.delete("/process/delete", (req, res) => {
     pm2DeleteProcess(req.query['processName'])
-        .then(list => res.status(200).json(list))
+        .then(list => {
+            pm2Save();
+            res.status(200).json(list);
+        })
         .catch(err => console.log(err));
 })
 
