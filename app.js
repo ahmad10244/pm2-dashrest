@@ -5,10 +5,12 @@ const pmx = require('pmx');
 const morgan = require("morgan")
 const Promise = require('promise');
 const express = require("express")
+const cors = require('cors')
 const app = express()
 
 app.use(morgan(':remote-addr - :remote-user [:date[clf]] ":method :url HTTP/:http-version" :status :res[content-length]'))
 app.use(express.json())
+app.use(cors())
 
 pmx.initModule({
     widget: {
