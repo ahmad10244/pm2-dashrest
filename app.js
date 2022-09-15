@@ -309,30 +309,30 @@ pmx.initModule({
 
 
     io.on('connection', function (socket) {
-        socket.on('logs:processName', (pName) => {
+        socket.on('logs:processName:err', (pName) => {
             pm2Describe(pName)
                 .then(list => {
-                    if (!Object.keys(list).length) {
-                        return;
-                    }
+                    if (!Object.keys(list).length) return;
 
                     let tailErrOutput = new Tail(list[0].pm2_env.pm_err_log_path);
-                    let tailOutOutput = new Tail(list[0].pm2_env.pm_out_log_path);
 
-                    tailErrOutput.on('line', (line) => {
-                        socket.emit("logs:msg", line);
-                    })
-                    tailOutOutput.on('line', (line) => {
-                        socket.emit("logs:msg", line);
-                    })
+                    tailErrOutput.on('line', (line) => socket.emit("logs:msg:err", line));
 
                     tailErrOutput.watch();
-                    tailOutOutput.watch();
+                    socket.on('disconnect', () => tailErrOutput.close());
+                })
+        });
 
-                    socket.on('disconnect', () => {
-                        tailErrOutput.close()
-                        tailOutOutput.close()
-                    });
+        socket.on('logs:processName:out', (pName) => {
+            pm2Describe(pName)
+                .then(list => {
+                    if (!Object.keys(list).length) return;
+
+                    let tailOutOutput = new Tail(list[0].pm2_env.pm_out_log_path);
+                    tailOutOutput.on('line', (line) => socket.emit("logs:msg:out", line));
+
+                    tailOutOutput.watch();
+                    socket.on('disconnect', () => tailOutOutput.close());
                 })
         });
     });
