@@ -158,7 +158,7 @@ pmx.initModule({
 
 
     app.get("/process/describe", (req, res) => {
-        if (!req.query.hasOwnProperty('processName')) {
+        if (!Object.prototype.hasOwnProperty.call(req.query, "processName")) {
             return res.status(400).json({ "err": "processName is missing." });
         }
 
@@ -191,7 +191,7 @@ pmx.initModule({
 
 
     app.put("/process/:action", (req, res) => {
-        if (!req.query.hasOwnProperty('processName')) {
+        if (!Object.prototype.hasOwnProperty.call(req.query, "processName")) {
             return res.status(400).json({ "err": "processName is missing." });
         }
 
@@ -230,7 +230,7 @@ pmx.initModule({
 
 
     app.delete("/process/delete", (req, res) => {
-        if (!req.query.hasOwnProperty('processName')) {
+        if (!Object.prototype.hasOwnProperty.call(req.query, "processName")) {
             return res.status(400).json({ "err": "processName is missing." });
         }
 
@@ -248,7 +248,7 @@ pmx.initModule({
 
 
     app.get("/process/logs", (req, res) => {
-        if (!req.query.hasOwnProperty('processName')) {
+        if (!Object.prototype.hasOwnProperty.call(req.query, "processName")) {
             return res.status(400).json({ "err": "processName is missing." });
         }
 
