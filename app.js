@@ -1,16 +1,23 @@
 const QueryLinesReader = require('query-lines-reader');
 const { exec } = require("child_process");
-const pm2 = require("pm2")
-const pmx = require('pmx');
-const morgan = require("morgan")
+const Tail = require('nodejs-tail');
+const morgan = require("morgan");
 const Promise = require('promise');
-const express = require("express")
-const cors = require('cors')
-const app = express()
+const express = require("express");
+const cors = require('cors');
+const pm2 = require("pm2");
+const pmx = require('pmx');
+const app = express();
 
-app.use(morgan(':remote-addr - :remote-user [:date[clf]] ":method :url HTTP/:http-version" :status :res[content-length]'))
-app.use(express.json())
-app.use(cors())
+app.use(morgan(':remote-addr - :remote-user [:date[clf]] ":method :url HTTP/:http-version" :status :res[content-length]'));
+app.use(express.json());
+app.use(cors());
+
+const http = require('http');
+const socketServer = http.createServer(express());
+const { Server } = require("socket.io");
+const io = new Server(socketServer);
+
 
 pmx.initModule({
     widget: {
@@ -33,7 +40,8 @@ pmx.initModule({
         }
     }
 }, function (err, conf) {
-    var pp = conf.port
+    const appPort = conf.port
+    const sioPort = conf.sioport
 
     function pm2List() {
         const pm2_list = new Promise((resolve, reject) => {
@@ -133,7 +141,6 @@ pmx.initModule({
         return pm2_list
     }
 
-
     function pm2Save() {
         exec("pm2 save --force", (error, stdout, stderr) => {
             if (error) {
@@ -173,7 +180,7 @@ pmx.initModule({
 
 
     app.post("/process/start", (req, res) => {
-        if(!Object.keys(req.body).length){
+        if (!Object.keys(req.body).length) {
             return res.status(400).json({ "err": "Empty body!" });
         }
 
@@ -256,7 +263,7 @@ pmx.initModule({
 
         pm2Describe(pName)
             .then(list => {
-                if(!Object.keys(list).length){
+                if (!Object.keys(list).length) {
                     return res.status(400).json({ "err": "process not found." });
                 }
 
@@ -297,7 +304,37 @@ pmx.initModule({
     })
 
 
-    app.listen(pp, function () {
-        console.log(`Listening on port ${pp}`);
-    })
+    io.on('connection', function (socket) {
+        socket.on('logs:processName', (pName) => {
+            pm2Describe(pName)
+                .then(list => {
+                    if (!Object.keys(list).length) {
+                        console.log("no");
+                        return;
+                    }
+
+                    let tailErrOutput = new Tail(list[0].pm2_env.pm_err_log_path);
+                    let tailOutOutput = new Tail(list[0].pm2_env.pm_out_log_path);
+
+                    tailErrOutput.on('line', (line) => {
+                        socket.send(line);
+                    })
+                    tailOutOutput.on('line', (line) => {
+                        socket.send(line);
+                    })
+
+                    tailErrOutput.watch();
+                    tailOutOutput.watch();
+
+                    socket.on('disconnect', () => {
+                        tailErrOutput.close()
+                        tailOutOutput.close()
+                    });
+                })
+        });
+    });
+
+
+    app.listen(appPort, () => console.log(`app Listening on port ${appPort}`))
+    socketServer.listen(sioPort, () => console.log(`SocketIO running on port ${sioPort}`));
 })
