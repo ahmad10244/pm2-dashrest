@@ -16,7 +16,11 @@ app.use(cors());
 const http = require('http');
 const socketServer = http.createServer(express());
 const { Server } = require("socket.io");
-const io = new Server(socketServer);
+const io = new Server(socketServer, {
+    cors: {
+        origin: '*',
+    }
+});
 
 
 pmx.initModule({
@@ -309,7 +313,6 @@ pmx.initModule({
             pm2Describe(pName)
                 .then(list => {
                     if (!Object.keys(list).length) {
-                        console.log("no");
                         return;
                     }
 
@@ -317,10 +320,10 @@ pmx.initModule({
                     let tailOutOutput = new Tail(list[0].pm2_env.pm_out_log_path);
 
                     tailErrOutput.on('line', (line) => {
-                        socket.send(line);
+                        socket.emit("logs:msg", line);
                     })
                     tailOutOutput.on('line', (line) => {
-                        socket.send(line);
+                        socket.emit("logs:msg", line);
                     })
 
                     tailErrOutput.watch();
