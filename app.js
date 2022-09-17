@@ -145,17 +145,6 @@ pmx.initModule({
         return pm2_list
     }
 
-    function pm2Save() {
-        exec("pm2 save --force", (error, stdout, stderr) => {
-            if (error) {
-                console.log(`error: ${error.message}`);
-            }
-            if (stderr) {
-                console.log(`stderr: ${stderr}`);
-            }
-        });
-    }
-
 
     app.get("/process/list", (req, res) => {
         pm2List()
@@ -190,7 +179,7 @@ pmx.initModule({
 
         pm2StartProcess(req.body)
             .then(list => {
-                pm2Save();
+                pm2.dump();
                 res.status(200).json(list);
             })
             .catch(err => {
@@ -210,7 +199,10 @@ pmx.initModule({
         switch (req.params.action) {
             case "restart":
                 pm2RestartProcess(pName)
-                    .then(list => res.status(200).json(list))
+                    .then(list => {
+                        pm2.dump();
+                        res.status(200).json(list);
+                    })
                     .catch(err => {
                         const retErr = Array.isArray(err) ? err.map(x => x.message) : err.message
                         res.status(500).json({ "err": retErr });
@@ -218,7 +210,10 @@ pmx.initModule({
                 break;
             case "stop":
                 pm2StopProcess(pName)
-                    .then(list => res.status(200).json(list))
+                    .then(list => {
+                        pm2.dump();
+                        res.status(200).json(list);
+                    })
                     .catch(err => {
                         console.error(err);
                         const retErr = Array.isArray(err) ? err.map(x => x.message) : err.message
@@ -227,7 +222,10 @@ pmx.initModule({
                 break;
             case "reload":
                 pm2ReloadProcess(pName)
-                    .then(list => res.status(200).json(list))
+                    .then(list => {
+                        pm2.dump();
+                        res.status(200).json(list);
+                    })
                     .catch(err => {
                         console.error(err);
                         const retErr = Array.isArray(err) ? err.map(x => x.message) : err.message
@@ -247,7 +245,7 @@ pmx.initModule({
 
         pm2DeleteProcess(req.query.processName)
             .then(list => {
-                pm2Save();
+                pm2.dump();
                 res.status(200).json(list);
             })
             .catch(err => {
