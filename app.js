@@ -1,6 +1,4 @@
 const QueryLinesReader = require('query-lines-reader');
-const { exec } = require("child_process");
-const Tail = require('nodejs-tail');
 const morgan = require("morgan");
 const Promise = require('promise');
 const express = require("express");
@@ -307,32 +305,40 @@ pmx.initModule({
 
 
     io.on('connection', function (socket) {
-        socket.on('logs:processName:err', (pName) => {
-            pm2Describe(pName)
-                .then(list => {
-                    if (!Object.keys(list).length) return;
+        socket.on("events:bus", (event) => {
+            pm2.launchBus((err, bus) => {
+                if (event == null) {
+                    bus.on("*", (ev, msg) => {
+                        socket.emit(ev, msg)
+                    })
+                } else {
+                    if (event.eventName == null) {
+                        if (event.processName == null) {
+                            bus.on("*", (ev, msg) => {
+                                socket.emit(ev, msg)
+                            })
+                        } else {
+                            bus.on("*", (ev, msg) => {
+                                if (event.processName == msg.process.name) socket.emit(ev, msg)
+                            })
+                        }
+                    } else {
+                        bus.on(event.eventName, (msg) => {
+                            if (event.processName == null) {
+                                socket.emit(event.eventName, msg)
+                            } else {
+                                if (event.processName == msg.process.name) socket.emit(event.eventName, msg)
+                            }
+                        })
+                    }
+                }
 
-                    let tailErrOutput = new Tail(list[0].pm2_env.pm_err_log_path);
+                socket.on('disconnect', () => {
+                    bus.close();
+                });
+            })
+        })
 
-                    tailErrOutput.on('line', (line) => socket.emit("logs:msg:err", line));
-
-                    tailErrOutput.watch();
-                    socket.on('disconnect', () => tailErrOutput.close());
-                })
-        });
-
-        socket.on('logs:processName:out', (pName) => {
-            pm2Describe(pName)
-                .then(list => {
-                    if (!Object.keys(list).length) return;
-
-                    let tailOutOutput = new Tail(list[0].pm2_env.pm_out_log_path);
-                    tailOutOutput.on('line', (line) => socket.emit("logs:msg:out", line));
-
-                    tailOutOutput.watch();
-                    socket.on('disconnect', () => tailOutOutput.close());
-                })
-        });
     });
 
 
